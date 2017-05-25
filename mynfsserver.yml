@@ -1,0 +1,56 @@
+--- # NFS SERVER PLAYBOOK
+- hosts: appserver
+  user: ansible
+  become: yes
+  connection: ssh
+  gather_facts: yes
+  vars:
+    distribution: RedHat
+    nfsutils_pkg: nfs-utils
+    nfsserver_service: nfs-server
+    nfslock_service: nfs-lock
+    nfsmap_service: nfs-idmap
+    rpcbind_service: rpcbind
+    export_path: /var/share
+    client_path: /mnt/remote
+  tasks:
+  - name: Install all the NFS Server and Utilities, Services, and Libraries
+    yum: pkg={{nfsutils_pkg}} state=latest
+  - name: Copy the export file to remote server
+    copy: src=files/exports.template dest=/etc/exports owner=root group=root mode=0644
+    notify:
+     - StartServerServices
+     - InstallClientPackages
+     - CreateClientMount
+     - ClientMountServerResource
+     - TestServerAvailability
+  handlers:
+  - name: StartServerServices
+    service: name={{item}} state=restarted
+    with_items:
+     - "{{rpcbind_service}}"
+     - "{{nfsserver_service}}"
+     - "{{nfslock_service}}"
+     - "{{nfsmap_service}}"
+  - name: InstallClientPackages
+    yum: pkg={{nfsutils_pkg}} state=latest
+    delegate_to: broomcj2.mylabserver.com
+    notify: StartClientServices
+  - name: StartClientServices
+    service: name={{item}} state=restarted
+    with_items:
+     - "{{rpcbind_service}}"
+     - "{{nfslock_service}}"
+     - "{{nfsmap_service}}"
+    delegate_to: broomcj2.mylabserver.com
+  - name: CreateClientMount
+    file: path={{client_path}} state=directory mode=0755
+    delegate_to: broomcj2.mylabserver.com
+  - name: ClientMountServerResource
+    shell: mount -t nfs broomcj2.mylabserver.com:{{export_path}} {{client_path}}
+    register: result
+    delegate_to: broomcj2.mylabserver.com
+  - name: TestServerAvailability
+    debug: var=result
+
+

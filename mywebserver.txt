@@ -1,0 +1,36 @@
+- Build an apache web server
+- deploy the webserver with ansible user
+- ansible needs sudo
+- connection ssh
+- gather facts on
+
+- info needed:
+  - apache web sever package
+  - distribution running on
+  - apache version
+  - need web server directory customized
+  - what is the site name
+
+- What needs to be done
+  - install apache web sever on remote system(s)
+  - create teh web server directoy
+  - web server directory has proper ownership
+  - configuration of apache
+    - copy http config file
+    - set up vhost direcotry
+    - add any ssl keys if needed
+    - add vhost template for default site
+  - copy teh site code the thew new directory
+  - start the apache service
+  - add/enable any modules needed
+    - mysql/ mariadb
+    - ssl
+    - mod/rewrite
+  - restart apache service (or move start here)
+
+- Test
+  - use lynx or telnet to test that the web service is running
+    - waitfor port 80 to be listening
+  - register output for the service stat as JSON on playbook completion
+
+
