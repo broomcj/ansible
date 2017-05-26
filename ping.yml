@@ -1,0 +1,10 @@
+--- # Linux Academy: 'Running COntainer Clusters with Kubernets"
+- hosts: all
+  user: user
+  become: yes
+  become_method: sudo  
+  connection: ssh
+  gather_facts: yes
+  tasks:
+   - name: Test PING All
+     ping:

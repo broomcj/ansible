@@ -1,0 +1,61 @@
+--- # Linux Academy: 'Running COntainer Clusters with Kubernets"
+- hosts: minions
+  user: user
+  become: yes
+  connection: ssh
+  gather_facts: yes
+  tasks:
+   - name: Install NTPD and trigger Update (local)
+     local_action: yum pkg=ntp state=latest
+     run_once: true
+     notify: 
+      - YumUpdateLocal
+      - EnableStartNTPDLocal
+   - name: Install NTPD and trigger Update
+     yum: 
+       name: ntp
+       state: latest
+     notify:
+      - YumUpdate
+      - EnableStartNTPD
+   - name: Check if HOSTS copy is saved already
+     stat:
+       path: /etc/hosts.original
+     register: stat_host_orig
+   - name: Save copy of HOSTS if needed
+     command: mv /etc/hosts /etc/hosts.original
+     when: stat_host_orig.stat.exists == False
+   - name: Copy /etc/hosts with private IPs
+     copy:
+       src: /etc/hosts
+       dest: /etc/hosts
+       force: yes
+       owner: root
+       group: root
+       mode: 0644
+   - meta: flush_handlers
+   - name: Copy Docker Repo and YUM Update again
+     copy:
+       src: /etc/yum.repos.d/virt7-docker-common-release.repo
+       dest: /etc/yum.repos.d/virt7-docker-common-release.repo
+       force: yes
+       owner: root
+       group: root
+       mode: 0644
+     notify:
+      - YumUpdate
+  handlers:
+   - name: YumUpdateLocal
+     local_action: yum pkg='*' state=latest
+     run_once: true
+   - name: EnableStartNTPDLocal
+     local_action: service name=ntpd enabled=yes state=started
+   - name: YumUpdate
+     yum: 
+       name: '*'
+       state: latest
+   - name: EnableStartNTPD
+     service:
+       name: ntpd
+       enabled: yes
+       state: started
