@@ -7,15 +7,9 @@
 
   vars:
     docker_repo: virt7-docker-common-release
+    kub_dir: /etc/kubernetes
 
   tasks:
-   - name: Install NTPD and trigger Update (local)
-     local_action: yum pkg=ntp state=latest
-     # The install will be sent to local once for each node in hosts without run_once
-     run_once: true
-     notify: 
-      - YumUpdateLocal
-      - EnableStartNTPDLocal
    - name: Install NTPD and trigger Update
      yum: 
        name: ntp
@@ -47,13 +41,11 @@
        mode: 0644
      notify:
       - YumUpdate
-# PAUSE: Make sure IPTABLES and FIREWALLD services are not running
+# TODO PAUSE: Make sure IPTABLES and FIREWALLD services are not running
    - name: Install ECTD
      yum:
        name: etcd
        state: latest
-     notify:
-      - InstallETCDLocal
    - name: Install KUBERNETES and DOCKER with repo
      yum:
        name: "{{ item }}"
@@ -62,25 +54,29 @@
      with_items:
       - kubernetes
       - docker
-     notify:
-      - KubInstallLocal
-      - DockerInstallLocal
+# TODO PAUSE: Make kubernete config files update: CONFIG, KUBELET, APISERVER
+   - name: Copy kubernete config - CONFIG, KUBELET, APISERVER
+     copy: 
+       src: "{{ kub_dir }}/{{ item }}"
+       dest: "{{ kub_dir}}/{{ item }}"
+       force: yes
+       owner: root
+       group: root
+       mode: 0644
+     with_items:
+      - config
+      - kubelet
+      - apiserver 
+   - name: Enable and Start KUBE-PROXY, KUBELET, DOCKER
+     service:
+       name: "{{ item }}"
+       enabled: yes
+       state: started
+     with_items:
+      - kube-proxy
+      - kubelet
+      - docker
   handlers:
-   - name: YumUpdateLocal
-     local_action: yum pkg='*' state=latest
-     run_once: true
-   - name: EnableStartNTPDLocal
-     local_action: service name=ntpd enabled=yes state=started
-     run_once: true
-   - name: InstallETCDLocal
-     local_action: yum pkg=etcd state=latest
-     run_once: true
-   - name: KubInstallLocal
-     local_action: yum pkg=kubernetes enablerepo="{{docker_repo}}" state=latest
-     run_once: true
-   - name: DockerInstallLocal
-     local_action: yum pkg=docker enablerepo="{{docker_repo}}" state=latest
-     run_once: true
    - name: YumUpdate
      yum: 
        name: '*'

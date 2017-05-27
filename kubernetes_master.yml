@@ -1,0 +1,51 @@
+--- # Linux Academy: 'Running Container Clusters with Kubernets"
+- hosts: local
+  user: user
+  become: yes
+  connection: ssh
+  gather_facts: yes
+
+  vars:
+    docker_repo: virt7-docker-common-release
+
+  tasks:
+   - name: Install NTPD and trigger Server enable/ start
+     yum: pkg=ntp state=latest
+     notify: 
+      - EnableStartNTPD
+# PAUSE: Make sure IPTABLES and FIREWALLD services are not running
+#
+# PAUSE: Create the docker_repo (see vars)
+   - name: Install ETCD
+     yum:
+       name: etcd
+       state: latest
+   - name: Install KUBERNETES and DOCKER with repo and YumUpdate
+     yum:
+       name: "{{ item }}"
+       enablerepo: "{{ docker_repo }}"
+       state: latest
+     with_items:
+      - kubernetes
+      - docker
+      - etcd
+     notify:
+      - YumUpdate
+   - name: Enable and start services in order - ETCD, KUBE-APISERVER, KUBE-CONTROLLER-MANAGER, KUBE-SCHEDULER
+     service:
+       name: "{{ item }}"
+       enabled: yes
+       state: started
+     with_items:
+      - etcd
+      - kube-apiserver
+      - kube-controller-manager
+      - kube-scheduler
+
+  handlers:
+   - name: EnableStartNTPD
+     service: name=ntpd enabled=yes state=started
+   - name: YumUpdate
+     yum: pkg='*' state=latest
+   - name: EnableStartDocker
+     service: name=docker enabled=yes state=started
