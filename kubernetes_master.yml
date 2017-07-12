@@ -1,4 +1,7 @@
---- # Linux Academy: 'Running Container Clusters with Kubernets"
+# Author: cbroom
+# Last Modify: 5/25/2017
+# Description: Configuring the master node of a Kubernetes cluster
+--- 
 - hosts: local
   user: user
   become: yes
@@ -49,3 +52,5 @@
      yum: pkg='*' state=latest
    - name: EnableStartDocker
      service: name=docker enabled=yes state=started
+
+...
